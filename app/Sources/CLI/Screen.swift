@@ -63,7 +63,7 @@ package enum Screen {
     package static func render(_ frame: Frame, style: Style, height: Int, width: Int) -> String {
         let width = max(8, width - 1)
         let showWordmark = frame.isTopLevel && height >= 22
-        var lines = headerLines(frame, style: style, showWordmark: showWordmark)
+        var lines = headerLines(frame, style: style, showWordmark: showWordmark, width: width)
             .flatMap { wrappedLines($0, width: width) }
         let contents = layout(frame.rows, width: width)
         let details =
@@ -85,7 +85,9 @@ package enum Screen {
         return "\u{1B}[H\u{1B}[2J" + lines.joined(separator: "\n")
     }
 
-    private static func headerLines(_ frame: Frame, style: Style, showWordmark: Bool) -> [String] {
+    private static func headerLines(
+        _ frame: Frame, style: Style, showWordmark: Bool, width: Int
+    ) -> [String] {
         var lines = [""]
         if showWordmark {
             for line in wordmark {
@@ -100,12 +102,43 @@ package enum Screen {
 
         let filtering = frame.searching || !frame.search.isEmpty
         if filtering {
-            let caret = frame.searching ? style.bold("▏") : ""
-            let text = frame.search.isEmpty ? "Filter" : frame.search
-            lines.append(contentIndent + style.dim("⌕ \(text)") + caret)
+            lines.append("")
+            lines += searchBox(frame, style: style, width: width)
         }
         lines.append("")
         return lines
+    }
+
+    private static func searchBox(_ frame: Frame, style: Style, width: Int) -> [String] {
+        let indent = String(repeating: " ", count: min(contentIndent.count, max(0, width - 8)))
+        let boxWidth = min(48, width - indent.count)
+        let innerWidth = boxWidth - 2
+        let fieldWidth = innerWidth - 2
+        let caret = frame.searching ? style.bold("▏") : ""
+        let available = fieldWidth - (frame.searching ? 1 : 0)
+        let content: String
+        if frame.search.isEmpty {
+            let placeholder = String("Type to filter...".prefix(fieldWidth))
+            content =
+                frame.searching
+                ? style.inverse(String(placeholder.prefix(1)))
+                    + style.dim(String(placeholder.dropFirst()))
+                : style.dim(placeholder)
+        } else {
+            let text =
+                frame.search.count > available
+                ? "…" + frame.search.suffix(available - 1) : frame.search
+            content = text + caret
+        }
+        let border = frame.searching ? style.bold : style.dim
+        let label = String("─ Search ".prefix(innerWidth))
+        return [
+            indent
+                + border(
+                    "╭" + label + String(repeating: "─", count: innerWidth - label.count) + "╮"),
+            indent + border("│") + " " + pad(content, fieldWidth) + " " + border("│"),
+            indent + border("╰" + String(repeating: "─", count: innerWidth) + "╯"),
+        ]
     }
 
     private static func listLines(
