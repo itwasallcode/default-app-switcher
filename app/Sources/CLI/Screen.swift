@@ -1,17 +1,30 @@
 import DASCore
 import Foundation
 
-struct Row {
+package struct Row {
     var marker: String = " "
     var label: String
     var value: String = ""
+    var compactValue: String = ""
     var trailing: String = ""
     var id: String = ""
+
+    package init(
+        marker: String = " ", label: String, value: String = "", compactValue: String = "",
+        trailing: String = "", id: String = ""
+    ) {
+        self.marker = marker
+        self.label = label
+        self.value = value
+        self.compactValue = compactValue
+        self.trailing = trailing
+        self.id = id
+    }
 
     var searchText: String { "\(label) \(value) \(id)".lowercased() }
 }
 
-struct Frame {
+package struct Frame {
     var title: String
     var subtitle: String = ""
     var isTopLevel: Bool = false
@@ -20,9 +33,23 @@ struct Frame {
     var search: String
     var searching: Bool
     var status: String?
+
+    package init(
+        title: String, subtitle: String = "", isTopLevel: Bool = false, rows: [Row],
+        selected: Int, search: String, searching: Bool, status: String?
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.isTopLevel = isTopLevel
+        self.rows = rows
+        self.selected = selected
+        self.search = search
+        self.searching = searching
+        self.status = status
+    }
 }
 
-enum Screen {
+package enum Screen {
     private static let gutter = "  "
     private static let contentIndent = "    "
     private static let wordmark = [
@@ -33,17 +60,27 @@ enum Screen {
         "└────┘  ┴    ┴  └────┘",
     ]
 
-    static func render(_ frame: Frame, style: Style, height: Int, width: Int) -> String {
+    package static func render(_ frame: Frame, style: Style, height: Int, width: Int) -> String {
+        let width = max(8, width - 1)
         let showWordmark = frame.isTopLevel && height >= 22
         var lines = headerLines(frame, style: style, showWordmark: showWordmark)
+            .flatMap { wrappedLines($0, width: width) }
+        let contents = layout(frame.rows, width: width)
+        let details =
+            contents.indices.contains(frame.selected) ? contents[frame.selected].details : []
+        let statusLines =
+            frame.status.map {
+                wrappedLines($0, width: width - contentIndent.count).map { contentIndent + $0 }
+            } ?? []
 
-        let attached = frame.status == nil ? 0 : 2
+        let attached = details.count + (statusLines.isEmpty ? 0 : statusLines.count + 1)
         let capacity = max(3, height - lines.count - attached)
-        lines += listLines(frame, capacity: capacity, width: width, style: style)
+        lines += listLines(
+            frame, contents: contents, capacity: capacity, width: width, style: style)
 
-        if let status = frame.status {
+        if !statusLines.isEmpty {
             lines.append("")
-            lines.append(contentIndent + status)
+            lines += statusLines
         }
         return "\u{1B}[H\u{1B}[2J" + lines.joined(separator: "\n")
     }
@@ -54,11 +91,11 @@ enum Screen {
             for line in wordmark {
                 lines.append(contentIndent + style.bold(line))
             }
-            if !frame.subtitle.isEmpty {
-                lines.append(contentIndent + style.dim(frame.subtitle))
-            }
         } else {
             lines.append(contentIndent + style.bold(frame.title))
+        }
+        if !frame.subtitle.isEmpty {
+            lines.append(contentIndent + style.dim(frame.subtitle))
         }
 
         let filtering = frame.searching || !frame.search.isEmpty
@@ -73,6 +110,7 @@ enum Screen {
 
     private static func listLines(
         _ frame: Frame,
+        contents: [RenderedRow],
         capacity: Int,
         width: Int,
         style: Style
@@ -88,9 +126,8 @@ enum Screen {
         }
         let last = min(frame.rows.count, first + inner)
 
-        let contents = layout(frame.rows, width: width)
         let barWidth = min(
-            max(0, width - gutter.count), (contents.map(visibleLength).max() ?? 0) + 2)
+            width, (contents.map { visibleLength($0.text) }.max() ?? 0) + 2)
 
         var lines: [String] = []
         if first > 0 {
@@ -98,10 +135,11 @@ enum Screen {
         }
         for index in first..<last {
             let padding = String(
-                repeating: " ", count: max(0, barWidth - visibleLength(contents[index])))
-            let body = contents[index] + padding
+                repeating: " ", count: max(0, barWidth - visibleLength(contents[index].text)))
+            let body = contents[index].text + padding
             if index == frame.selected {
                 lines.append(style.inverse(stripANSI(body)))
+                lines += contents[index].details.map { contentIndent + style.dim($0) }
             } else {
                 lines.append(body)
             }
@@ -112,15 +150,62 @@ enum Screen {
         return lines
     }
 
-    private static func layout(_ rows: [Row], width: Int) -> [String] {
+    private struct RenderedRow {
+        var text: String
+        var details: [String] = []
+    }
+
+    private static func layout(_ rows: [Row], width: Int) -> [RenderedRow] {
         let labelWidth = min(rows.map(\.label.count).max() ?? 0, max(12, width / 3))
         let valueWidth =
             rows.filter { !$0.trailing.isEmpty }
             .map { visibleLength($0.value) }.max() ?? 0
         return rows.map { row in
-            var line = "\(gutter)\(row.marker) \(pad(row.label, labelWidth + 2))"
+            var line = "\(gutter)\(row.marker) \(pad(row.label, labelWidth))  "
             line += row.trailing.isEmpty ? row.value : pad(row.value, valueWidth + 2)
-            return line + row.trailing
+            line += row.trailing
+            guard visibleLength(line) > width else { return RenderedRow(text: line) }
+            let compact =
+                "\(gutter)\(row.marker) \(pad(row.label, labelWidth))  \(row.compactValue)"
+            let text =
+                visibleLength(compact) <= width
+                ? compact : String(stripANSI(compact).prefix(width - 1)) + "…"
+            let detail = [
+                stripANSI(row.label) + ":", stripANSI(row.value), stripANSI(row.trailing),
+            ]
+            .filter { !$0.isEmpty }.joined(separator: " ")
+            return RenderedRow(
+                text: text, details: wrappedLines(detail, width: width - contentIndent.count))
         }
+    }
+
+    private static func wrappedLines(_ text: String, width: Int) -> [String] {
+        guard visibleLength(text) > width else { return [text] }
+        let indentation = String(text.prefix { $0 == " " })
+        if !indentation.isEmpty, indentation.count < width {
+            return wrappedLines(
+                String(text.dropFirst(indentation.count)), width: width - indentation.count
+            ).map { indentation + $0 }
+        }
+        var lines: [String] = []
+        var line = ""
+        for word in text.split(separator: " ", omittingEmptySubsequences: false) {
+            let next = line.isEmpty ? String(word) : line + " " + word
+            if visibleLength(next) <= width {
+                line = next
+                continue
+            }
+            if !line.isEmpty { lines.append(line) }
+            line = String(word)
+            if visibleLength(line) > width {
+                line = stripANSI(line)
+                while line.count > width {
+                    lines.append(String(line.prefix(width)))
+                    line.removeFirst(width)
+                }
+            }
+        }
+        if !line.isEmpty { lines.append(line) }
+        return lines
     }
 }

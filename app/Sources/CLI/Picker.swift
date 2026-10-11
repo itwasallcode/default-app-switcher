@@ -122,6 +122,7 @@ enum Picker {
                     label: app.app.name,
                     value: AppStatusText.summary(
                         app, total: status.targets.count, style: style),
+                    compactValue: AppStatusText.compactSummary(app, style: style),
                     id: app.app.bundleIdentifier
                 )
             }
@@ -130,8 +131,8 @@ enum Picker {
 
             draw(
                 Frame(
-                    title:
-                        "das \(style.dim("›")) \(category.name)  \(style.dim("· \(status.targets.count) \(status.targets.count == 1 ? "type" : "types")"))",
+                    title: "das \(style.dim("›")) \(category.name)",
+                    subtitle: "\(category.summary).",
                     rows: shown,
                     selected: selected,
                     search: search,
@@ -202,7 +203,11 @@ enum Picker {
                 ), style: style)
         }
 
-        waitingFrame(style.dim("Setting \(app.name) as the default for \(category.name)..."))
+        let targets = status.supportedTargets(for: app)
+        waitingFrame(
+            style.dim(
+                "Setting \(app.name) as the default for \(AppStatusText.description(of: targets)).")
+        )
 
         do {
             let (response, skipped) = try runtime.performAssignment(
@@ -214,25 +219,8 @@ enum Picker {
             )
             status = runtime.status(of: category)
 
-            let applied = response.succeeded.count
-            let typeCount = "\(applied) \(applied == 1 ? "type" : "types")"
-            if response.wasCancelled {
-                return style.yellow(
-                    "Cancelled. \(typeCount) changed; check the current defaults."
-                )
-            }
-            guard response.failed.isEmpty else {
-                return style.yellow(
-                    "◐ \(app.name) set for \(response.succeeded.count)/\(response.outcomes.count) of \(category.name)"
-                )
-            }
-            var line = style.green("✓ \(app.name) is now the default for \(category.name).")
-            if !skipped.isEmpty {
-                line += style.dim(
-                    "  (skipped \(skipped.count) type\(skipped.count == 1 ? "" : "s") it cannot open)"
-                )
-            }
-            return line
+            return AppStatusText.assignmentResult(
+                app: app, response: response, skipped: skipped, style: style)
         } catch let error as DASError {
             let firstLine =
                 stripANSI(error.description).split(separator: "\n").first.map(String.init)
