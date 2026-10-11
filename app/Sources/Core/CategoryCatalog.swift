@@ -28,7 +28,7 @@ package enum CategoryCatalog {
     package static let mail = AppCategory(
         id: "mail",
         name: "Mail",
-        summary: "mailto: links",
+        summary: "Email links",
         targets: [.scheme("mailto", primary: true)]
     )
 
