@@ -12,7 +12,7 @@ Rules for AI agents writing Markdown documentation.
 
 - Use simple, short English.
 - Use common words; never invent terms.
-- Merge related sentences into one; keep unrelated topics separate.
+- Use one short sentence per paragraph or list item.
 - Wrap important keywords in backticks.
 
 ## Agent Rule Files
