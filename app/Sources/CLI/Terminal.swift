@@ -39,7 +39,9 @@ package struct Style: Sendable {
     func green(_ t: String) -> String { wrap(t, "32") }
     func yellow(_ t: String) -> String { wrap(t, "33") }
     func red(_ t: String) -> String { wrap(t, "31") }
-    func inverse(_ t: String) -> String { wrap(t, "7") }
+    func inverse(_ t: String) -> String {
+        isTerminal ? "\u{1B}[7m\(t)\u{1B}[0m" : t
+    }
 }
 
 package struct CommandOutput {

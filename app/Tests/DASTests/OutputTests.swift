@@ -78,6 +78,33 @@ func runOutputTests(_ t: TestRunner) {
             "default ownership is distinct from supported targets")
     }
 
+    t.suite("screen-no-color-selection") { t in
+        let noColor = Style(enabled: false, isTerminal: true)
+        func render(_ selected: Int, using style: Style) -> String {
+            let frame = Frame(
+                title: "das", isTopLevel: true,
+                rows: [Row(label: "Browser"), Row(label: "Code Editor")], selected: selected,
+                search: "", searching: false, status: nil)
+            return Screen.render(frame, style: style, height: 24, width: 120)
+        }
+        let first = render(0, using: noColor)
+        let second = render(1, using: noColor)
+
+        for (output, selectedLabel) in [(first, "Browser"), (second, "Code Editor")] {
+            let highlighted = output.components(separatedBy: "\n").filter {
+                $0.contains("\u{1B}[7m")
+            }
+            t.equal(highlighted.count, 1, "exactly one row is highlighted without colors")
+            t.expect(
+                highlighted.first?.contains(selectedLabel) == true,
+                "the highlight follows the selected row without colors")
+        }
+        t.expect(first != second, "moving the selection changes the visible screen")
+
+        let plain = render(0, using: style)
+        t.expect(!plain.contains("\u{1B}[7m"), "non-terminal output has no inverse styling")
+    }
+
     t.suite("screen-details") { t in
         let description =
             "Can open Python scripts, shell scripts, JavaScript files and Markdown files only."
