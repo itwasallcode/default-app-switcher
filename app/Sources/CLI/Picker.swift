@@ -13,8 +13,6 @@ enum Picker {
     private static func chooseCategory(_ runtime: Runtime) throws -> Int32 {
         let style = runtime.style
         var selected = 0
-        var search = ""
-        var searching = false
         var message: String?
         var statuses: [String: CategoryStatus] = [:]
 
@@ -35,7 +33,7 @@ enum Picker {
                     id: category.id
                 )
             }
-            var shown = matchesPreferringNames(rows, search.lowercased())
+            var shown = rows
             shown.append(Row(label: style.dim("Exit"), id: exitID))
             selected = min(selected, shown.count - 1)
 
@@ -46,38 +44,21 @@ enum Picker {
                     isTopLevel: true,
                     rows: shown,
                     selected: selected,
-                    search: search,
-                    searching: searching,
+                    search: "",
+                    searching: false,
                     status: message
                 ), style: style)
 
-            switch RawTerminal.readKey(searching: searching) {
+            switch RawTerminal.readKey(searching: false) {
             case .up:
                 selected = moveSelection(selected: selected, from: .up, count: shown.count)
                 message = nil
             case .down:
                 selected = moveSelection(selected: selected, from: .down, count: shown.count)
                 message = nil
-            case .search:
-                searching = true
-            case .character(let character):
-                search.append(character)
-            case .backspace:
-                if searching, !search.isEmpty { search.removeLast() }
             case .back:
-                if searching {
-                    searching = false
-                    search = ""
-                } else if !search.isEmpty {
-                    search = ""
-                } else {
-                    return 0
-                }
+                return 0
             case .enter:
-                if searching {
-                    searching = false
-                    break
-                }
                 guard !shown.isEmpty else { break }
                 if shown[selected].id == exitID { return 0 }
                 guard let category = CategoryCatalog.builtin(id: shown[selected].id) else { break }
@@ -92,7 +73,7 @@ enum Picker {
                 }
             case .quit:
                 return 0
-            case .other:
+            case .search, .character(_), .backspace, .other:
                 break
             }
         }

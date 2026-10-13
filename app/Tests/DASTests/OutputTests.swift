@@ -91,6 +91,9 @@ func runOutputTests(_ t: TestRunner) {
                     search: "", searching: false, status: nil)
                 let output = stripANSI(Screen.render(frame, style: style, height: 24, width: width))
                 let lines = output.components(separatedBy: "\n")
+                t.expect(
+                    lines.last?.contains(" /  Search") == true, "the search hint follows the list")
+                t.expect(lines.last?.contains(" Esc  Back") == true, "the back hint follows search")
                 t.expect(lines.allSatisfy { $0.count < width }, "rows fit within \(width) columns")
                 t.expect(lines.count <= 24, "expanded details fit within the terminal height")
                 t.expect(output.contains("Editor \(selected)"), "the selected row stays visible")
@@ -111,7 +114,7 @@ func runOutputTests(_ t: TestRunner) {
             app: app, response: HelperResponse(outcomes: [.init(target: html, ok: true)]),
             skipped: [links], style: style)
         let frame = Frame(
-            title: "das", subtitle: AppMetadata.description,
+            title: "das", subtitle: AppMetadata.description, isTopLevel: true,
             rows: [Row(label: "Browser", value: "Safari")], selected: 0,
             search: "", searching: false, status: result)
         let output = stripANSI(Screen.render(frame, style: style, height: 24, width: 40))
@@ -121,6 +124,8 @@ func runOutputTests(_ t: TestRunner) {
         t.expect(
             output.contains("cannot open them."),
             "wrapping preserves the reason for skipped targets")
+        t.expect(!output.contains(" /  Search"), "the category list has no search hint")
+        t.expect(!output.contains(" Esc  Back"), "the category list has no back hint")
         t.expect(
             output.components(separatedBy: "\n").first { $0.contains("Switch") }?
                 .hasPrefix("    ") == true,
@@ -137,5 +142,12 @@ func runOutputTests(_ t: TestRunner) {
         t.expect(
             narrow.contains("Visual Studio Code  Default."),
             "long app names stay separated from compact status text")
+
+        let searching = Frame(
+            title: "Code Editor", rows: [Row(label: "TextEdit")], selected: 0,
+            search: "", searching: true, status: nil)
+        let searchOutput = stripANSI(Screen.render(searching, style: style, height: 24, width: 40))
+        t.expect(searchOutput.contains("Search"), "the search box appears when searching")
+        t.expect(!searchOutput.contains(" /  Search"), "the hint hides while searching")
     }
 }
