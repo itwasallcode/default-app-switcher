@@ -105,6 +105,52 @@ func runOutputTests(_ t: TestRunner) {
         t.expect(!plain.contains("\u{1B}[7m"), "non-terminal output has no inverse styling")
     }
 
+    t.suite("screen-shortcut-feedback") { t in
+        for (key, label) in [(Key.search, " / "), (.back, " Esc "), (.refresh, " r ")] {
+            let frame = Frame(
+                title: "Code Editor", rows: [Row(label: "TextEdit")], selected: 0,
+                search: "", searching: false, status: nil, pressedShortcut: key)
+            let colored = Screen.render(
+                frame, style: Style(enabled: true), height: 24, width: 80)
+            t.expect(
+                colored.contains("\u{1B}[1;30;46m\(label)\u{1B}[0m"),
+                "the pressed shortcut receives a colored background")
+            t.equal(
+                colored.components(separatedBy: "\u{1B}[1;30;46m").count - 1, 1,
+                "only the pressed shortcut changes color")
+            let noColor = Screen.render(
+                frame, style: Style(enabled: false, isTerminal: true), height: 24, width: 80)
+            t.expect(
+                noColor.contains("\u{1B}[1;7m\(label)\u{1B}[0m"),
+                "NO_COLOR feedback uses emphasis without changing color")
+            t.expect(!noColor.contains("30;46m"), "NO_COLOR omits the feedback color")
+            for width in [40, 80, 120] {
+                let plain = stripANSI(
+                    Screen.render(frame, style: Style(enabled: true), height: 24, width: width))
+                t.expect(
+                    plain.components(separatedBy: "\n").allSatisfy { $0.count < width },
+                    "feedback fits within \(width) columns")
+            }
+        }
+
+        let searching = Frame(
+            title: "Code Editor", rows: [Row(label: "TextEdit")], selected: 0,
+            search: "", searching: true, status: nil, pressedShortcut: .search)
+        let output = Screen.render(
+            searching, style: Style(enabled: true), height: 24, width: 80)
+        t.expect(
+            output.contains("\u{1B}[1;30;46m / \u{1B}[0m"),
+            "search feedback remains visible when the search field opens")
+
+        let main = Frame(
+            title: "das", isTopLevel: true, rows: [Row(label: "Browser")], selected: 0,
+            search: "", searching: false, status: nil, pressedShortcut: .refresh)
+        t.expect(
+            !Screen.render(main, style: Style(enabled: true), height: 24, width: 80)
+                .contains("Refresh"),
+            "feedback does not add shortcuts to the main menu")
+    }
+
     t.suite("screen-details") { t in
         let description =
             "Can open Python scripts, shell scripts, JavaScript files and Markdown files only."

@@ -33,10 +33,11 @@ package struct Frame {
     var search: String
     var searching: Bool
     var status: String?
+    var pressedShortcut: Key?
 
     package init(
         title: String, subtitle: String = "", isTopLevel: Bool = false, rows: [Row],
-        selected: Int, search: String, searching: Bool, status: String?
+        selected: Int, search: String, searching: Bool, status: String?, pressedShortcut: Key? = nil
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -46,6 +47,7 @@ package struct Frame {
         self.search = search
         self.searching = searching
         self.status = status
+        self.pressedShortcut = pressedShortcut
     }
 }
 
@@ -73,10 +75,11 @@ package enum Screen {
                 wrappedLines($0, width: width - contentIndent.count).map { contentIndent + $0 }
             } ?? []
         let hint =
-            style.inverse(" / ") + " Search  " + style.inverse(" Esc ") + " Back  "
-            + style.inverse(" r ") + " Refresh"
+            style.shortcut(" / ", pressed: frame.pressedShortcut == .search) + " Search  "
+            + style.shortcut(" Esc ", pressed: frame.pressedShortcut == .back) + " Back  "
+            + style.shortcut(" r ", pressed: frame.pressedShortcut == .refresh) + " Refresh"
         let keyHints =
-            frame.isTopLevel || frame.searching
+            frame.isTopLevel || (frame.searching && frame.pressedShortcut == nil)
             ? []
             : [""] + wrappedLines(contentIndent + hint, width: width)
 

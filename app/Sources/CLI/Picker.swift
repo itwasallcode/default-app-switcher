@@ -95,8 +95,11 @@ enum Picker {
         var selected = status.apps.firstIndex { $0.ownsPrimary } ?? 0
         var search = ""
         var searching = false
+        var feedback = ShortcutFeedback()
+        var returning = false
 
         while true {
+            let timeout = feedback.remainingMilliseconds()
             let rows = appRows(for: status, style: style)
             let shown = matchesPreferringNames(rows, search.lowercased())
             selected = shown.isEmpty ? 0 : min(selected, shown.count - 1)
@@ -109,10 +112,18 @@ enum Picker {
                     selected: selected,
                     search: search,
                     searching: searching,
-                    status: nil
+                    status: nil,
+                    pressedShortcut: feedback.key
                 ), style: style)
 
-            switch RawTerminal.readKey(searching: searching) {
+            if returning {
+                if let timeout {
+                    Thread.sleep(forTimeInterval: Double(timeout) / 1000)
+                }
+                return .back
+            }
+
+            switch RawTerminal.readKey(searching: searching, timeoutMilliseconds: timeout) {
             case .up:
                 selected = moveSelection(selected: selected, from: .up, count: shown.count)
             case .down:
@@ -125,8 +136,10 @@ enum Picker {
                 selected =
                     refreshed.firstIndex { $0.id == selectedID }
                     ?? min(selected, max(0, refreshed.count - 1))
+                feedback.press(.refresh)
             case .search:
                 searching = true
+                feedback.press(.search)
             case .character(let character):
                 search.append(character)
             case .backspace:
@@ -138,8 +151,9 @@ enum Picker {
                 } else if !search.isEmpty {
                     search = ""
                 } else {
-                    return .back
+                    returning = true
                 }
+                feedback.press(.back)
             case .enter:
                 if searching {
                     searching = false

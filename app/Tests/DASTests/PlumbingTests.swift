@@ -3,6 +3,40 @@ import DASCore
 import Foundation
 
 func runPlumbingTests(_ t: TestRunner) {
+    t.suite("shortcut-feedback") { t in
+        var feedback = ShortcutFeedback()
+        t.equal(feedback.remainingMilliseconds(at: 10), nil, "idle feedback does not poll")
+        feedback.press(.refresh, at: 10)
+        t.equal(feedback.key, .refresh, "the pressed shortcut is recorded")
+        t.expect(
+            feedback.remainingMilliseconds(at: 10.08) != nil,
+            "feedback remains visible during its duration")
+        feedback.press(.search, at: 10.08)
+        t.equal(feedback.key, .search, "the latest shortcut replaces the previous one")
+        t.expect(
+            feedback.remainingMilliseconds(at: 10.13) != nil,
+            "another press extends feedback beyond the original deadline")
+        t.equal(feedback.remainingMilliseconds(at: 10.21), nil, "feedback expires without input")
+        t.equal(feedback.key, nil, "expired feedback clears the pressed shortcut")
+
+        let input = Pipe()
+        defer {
+            input.fileHandleForReading.closeFile()
+            input.fileHandleForWriting.closeFile()
+        }
+        t.equal(
+            RawTerminal.readKey(
+                searching: false, timeoutMilliseconds: 10,
+                from: input.fileHandleForReading.fileDescriptor),
+            .other, "timed input returns when no key arrives")
+        input.fileHandleForWriting.write(Data("r".utf8))
+        t.equal(
+            RawTerminal.readKey(
+                searching: false, timeoutMilliseconds: 10,
+                from: input.fileHandleForReading.fileDescriptor),
+            .refresh, "a timeout does not consume the next key")
+    }
+
     t.suite("search-input") { t in
         func read(_ bytes: [UInt8], searching: Bool = true) -> Key {
             let input = Pipe()
