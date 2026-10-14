@@ -1,11 +1,17 @@
 CONFIGURATION ?= release
 
-.PHONY: all build test lint format format-check clean run
+.PHONY: all build check test lint format format-check clean run
 
 all: build
 
 build:
 	@CONFIGURATION="$(CONFIGURATION)" scripts/build.sh
+
+check:
+	@$(MAKE) lint
+	@$(MAKE) format-check
+	@$(MAKE) test
+	@$(MAKE) build
 
 test:
 	@swift run --package-path app -c debug DASTests
