@@ -13,6 +13,14 @@ func runPlumbingTests(_ t: TestRunner) {
         }
 
         t.equal(read(Array("a".utf8)), .character("a"), "ASCII letters remain searchable")
+        for character in ["r", "R"] {
+            t.equal(
+                read(Array(character.utf8), searching: false), .refresh,
+                "refresh is available outside search")
+            t.equal(
+                read(Array(character.utf8)), .character(Character(character)),
+                "refresh keys remain searchable letters")
+        }
         t.equal(read(Array("ş".utf8)), .character("ş"), "Turkish letters are searchable")
         t.equal(read(Array("日".utf8)), .character("日"), "three-byte characters are searchable")
         t.equal(read(Array("😀".utf8)), .character("😀"), "four-byte characters are searchable")

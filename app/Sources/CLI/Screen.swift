@@ -72,18 +72,17 @@ package enum Screen {
             frame.status.map {
                 wrappedLines($0, width: width - contentIndent.count).map { contentIndent + $0 }
             } ?? []
-        let searchHint =
-            frame.isTopLevel || frame.searching || !frame.search.isEmpty
+        let hint =
+            style.inverse(" / ") + " Search  " + style.inverse(" Esc ") + " Back  "
+            + style.inverse(" r ") + " Refresh"
+        let keyHints =
+            frame.isTopLevel || frame.searching
             ? []
-            : [
-                "",
-                contentIndent + style.inverse(" / ") + " Search  "
-                    + style.inverse(" Esc ") + " Back",
-            ]
+            : [""] + wrappedLines(contentIndent + hint, width: width)
 
         let attached =
             details.count + (statusLines.isEmpty ? 0 : statusLines.count + 1)
-            + searchHint.count
+            + keyHints.count
         let capacity = max(3, height - lines.count - attached)
         lines += listLines(
             frame, contents: contents, capacity: capacity, width: width, style: style)
@@ -92,7 +91,7 @@ package enum Screen {
             lines.append("")
             lines += statusLines
         }
-        lines += searchHint
+        lines += keyHints
         return "\u{1B}[H\u{1B}[2J" + lines.joined(separator: "\n")
     }
 
