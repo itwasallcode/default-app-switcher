@@ -67,13 +67,13 @@ enum Picker {
                     statuses.removeValue(forKey: category.id)
                     message = outcome
                 case .back:
-                    break
+                    statuses.removeValue(forKey: category.id)
                 case .quit:
                     return 0
                 }
             case .quit:
                 return 0
-            case .search, .character(_), .backspace, .other:
+            case .search, .refresh, .character(_), .backspace, .other:
                 break
             }
         }
@@ -97,16 +97,7 @@ enum Picker {
         var searching = false
 
         while true {
-            let rows = status.apps.map { app in
-                Row(
-                    marker: AppStatusText.marker(app, style: style),
-                    label: app.app.name,
-                    value: AppStatusText.summary(
-                        app, total: status.targets.count, style: style),
-                    compactValue: AppStatusText.compactSummary(app, style: style),
-                    id: app.app.bundleIdentifier
-                )
-            }
+            let rows = appRows(for: status, style: style)
             let shown = matchesPreferringNames(rows, search.lowercased())
             selected = shown.isEmpty ? 0 : min(selected, shown.count - 1)
 
@@ -126,6 +117,14 @@ enum Picker {
                 selected = moveSelection(selected: selected, from: .up, count: shown.count)
             case .down:
                 selected = moveSelection(selected: selected, from: .down, count: shown.count)
+            case .refresh:
+                let selectedID = shown.indices.contains(selected) ? shown[selected].id : nil
+                status = runtime.status(of: category)
+                let refreshed = matchesPreferringNames(
+                    appRows(for: status, style: style), search.lowercased())
+                selected =
+                    refreshed.firstIndex { $0.id == selectedID }
+                    ?? min(selected, max(0, refreshed.count - 1))
             case .search:
                 searching = true
             case .character(let character):
@@ -215,6 +214,18 @@ enum Picker {
     private static func draw(_ frame: Frame, style: Style) {
         let (height, width) = RawTerminal.size
         RawTerminal.emit(Screen.render(frame, style: style, height: height, width: width))
+    }
+
+    private static func appRows(for status: CategoryStatus, style: Style) -> [Row] {
+        status.apps.map { app in
+            Row(
+                marker: AppStatusText.marker(app, style: style),
+                label: app.app.name,
+                value: AppStatusText.summary(app, total: status.targets.count, style: style),
+                compactValue: AppStatusText.compactSummary(app, style: style),
+                id: app.app.bundleIdentifier
+            )
+        }
     }
 
     private static func matchesPreferringNames(_ rows: [Row], _ needle: String) -> [Row] {

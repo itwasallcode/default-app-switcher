@@ -118,9 +118,10 @@ func runOutputTests(_ t: TestRunner) {
                     search: "", searching: false, status: nil)
                 let output = stripANSI(Screen.render(frame, style: style, height: 24, width: width))
                 let lines = output.components(separatedBy: "\n")
-                t.expect(
-                    lines.last?.contains(" /  Search") == true, "the search hint follows the list")
-                t.expect(lines.last?.contains(" Esc  Back") == true, "the back hint follows search")
+                let hints = lines.suffix(2).joined(separator: " ")
+                t.expect(hints.contains(" /  Search"), "the search hint follows the list")
+                t.expect(hints.contains(" Esc  Back"), "the back hint follows search")
+                t.expect(hints.contains(" r  Refresh"), "the refresh hint follows back")
                 t.expect(lines.allSatisfy { $0.count < width }, "rows fit within \(width) columns")
                 t.expect(lines.count <= 24, "expanded details fit within the terminal height")
                 t.expect(output.contains("Editor \(selected)"), "the selected row stays visible")
@@ -153,6 +154,7 @@ func runOutputTests(_ t: TestRunner) {
             "wrapping preserves the reason for skipped targets")
         t.expect(!output.contains(" /  Search"), "the category list has no search hint")
         t.expect(!output.contains(" Esc  Back"), "the category list has no back hint")
+        t.expect(!output.contains(" r  Refresh"), "the category list has no refresh hint")
         t.expect(
             output.components(separatedBy: "\n").first { $0.contains("Switch") }?
                 .hasPrefix("    ") == true,
@@ -176,5 +178,15 @@ func runOutputTests(_ t: TestRunner) {
         let searchOutput = stripANSI(Screen.render(searching, style: style, height: 24, width: 40))
         t.expect(searchOutput.contains("Search"), "the search box appears when searching")
         t.expect(!searchOutput.contains(" /  Search"), "the hint hides while searching")
+        t.expect(!searchOutput.contains(" r  Refresh"), "refresh is unavailable while searching")
+
+        let filtered = Frame(
+            title: "Code Editor", rows: [Row(label: "TextEdit")], selected: 0,
+            search: "text", searching: false, status: nil)
+        let filteredOutput = stripANSI(
+            Screen.render(filtered, style: style, height: 24, width: 80))
+        t.expect(
+            filteredOutput.contains(" Esc  Back   r  Refresh"),
+            "refresh remains visible after entering a filter")
     }
 }

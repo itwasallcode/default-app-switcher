@@ -5,7 +5,7 @@ nonisolated(unsafe) private var termiosSaved = false
 
 package enum Key: Equatable {
     case up, down, enter, back, quit
-    case search
+    case search, refresh
     case character(Character)
     case backspace
     case other
@@ -79,6 +79,7 @@ package enum RawTerminal {
         case 0x68: return .back
         case 0x71, 0x51: return .quit
         case 0x2F: return .search
+        case 0x72, 0x52: return .refresh
         default: return .other
         }
     }
