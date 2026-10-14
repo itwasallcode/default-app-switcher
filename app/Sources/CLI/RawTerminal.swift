@@ -57,7 +57,12 @@ package enum RawTerminal {
         return (24, 80)
     }
 
-    package static func readKey(searching: Bool, from descriptor: Int32 = STDIN_FILENO) -> Key {
+    package static func readKey(
+        searching: Bool, timeoutMilliseconds: Int32? = nil, from descriptor: Int32 = STDIN_FILENO
+    ) -> Key {
+        if let timeoutMilliseconds, !byteReady(within: timeoutMilliseconds, from: descriptor) {
+            return .other
+        }
         guard let byte = readByte(from: descriptor) else { return .quit }
 
         switch byte {

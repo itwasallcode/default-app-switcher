@@ -42,6 +42,12 @@ package struct Style: Sendable {
     func inverse(_ t: String) -> String {
         isTerminal ? "\u{1B}[7m\(t)\u{1B}[0m" : t
     }
+
+    func shortcut(_ text: String, pressed: Bool) -> String {
+        guard pressed, isTerminal else { return inverse(text) }
+        let code = enabled ? "1;30;46" : "1;7"
+        return "\u{1B}[\(code)m\(text)\u{1B}[0m"
+    }
 }
 
 package struct CommandOutput {
