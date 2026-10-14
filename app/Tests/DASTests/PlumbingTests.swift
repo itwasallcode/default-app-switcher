@@ -3,6 +3,34 @@ import DASCore
 import Foundation
 
 func runPlumbingTests(_ t: TestRunner) {
+    t.suite("search-input") { t in
+        func read(_ bytes: [UInt8], searching: Bool = true) -> Key {
+            let input = Pipe()
+            input.fileHandleForWriting.write(Data(bytes))
+            input.fileHandleForWriting.closeFile()
+            return RawTerminal.readKey(
+                searching: searching, from: input.fileHandleForReading.fileDescriptor)
+        }
+
+        t.equal(read(Array("a".utf8)), .character("a"), "ASCII letters remain searchable")
+        t.equal(read(Array("ş".utf8)), .character("ş"), "Turkish letters are searchable")
+        t.equal(read(Array("日".utf8)), .character("日"), "three-byte characters are searchable")
+        t.equal(read(Array("😀".utf8)), .character("😀"), "four-byte characters are searchable")
+        let input = Pipe()
+        input.fileHandleForWriting.write(Data("şx".utf8))
+        input.fileHandleForWriting.closeFile()
+        t.equal(
+            RawTerminal.readKey(searching: true, from: input.fileHandleForReading.fileDescriptor),
+            .character("ş"), "a UTF-8 character consumes all of its bytes")
+        t.equal(
+            RawTerminal.readKey(searching: true, from: input.fileHandleForReading.fileDescriptor),
+            .character("x"), "the next key remains available")
+        t.equal(read([0x7F]), .backspace, "backspace still removes a search character")
+        t.equal(read([0xE2, 0x28, 0xA1]), .other, "invalid UTF-8 is ignored")
+        t.equal(read([0xC3]), .other, "incomplete UTF-8 is ignored")
+        t.equal(read(Array("ş".utf8), searching: false), .other, "typing outside search is ignored")
+    }
+
     t.suite("text-layout") { t in
         t.equal(visibleLength("plain"), 5, "plain text measures its characters")
         t.equal(visibleLength("\u{1B}[2mdim\u{1B}[0m"), 3, "escape sequences occupy no columns")
