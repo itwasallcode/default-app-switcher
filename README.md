@@ -47,15 +47,15 @@ This builds the repository's current default branch.
 Run these commands in order and stop if one fails.
 
 ```bash
-git clone https://github.com/itwasallcode/default-app-switcher.git "$HOME/default-app-switcher"
-cd "$HOME/default-app-switcher"
+git clone https://github.com/itwasallcode/default-app-switcher.git "$HOME/.default-app-switcher"
+cd "$HOME/.default-app-switcher"
 make build
 ```
 
 Add this line once to the startup file for your shell.
 
 ```bash
-export PATH="$HOME/default-app-switcher/dist:$PATH"
+export PATH="$HOME/.default-app-switcher/dist:$PATH"
 ```
 
 | Shell | Startup file |
@@ -66,7 +66,11 @@ export PATH="$HOME/default-app-switcher/dist:$PATH"
 
 For other shells, use their `PATH` syntax.
 
-Open a new terminal, then check the active command and run `das`.
+Open a new terminal, or reload the file you edited to update your current terminal.
+
+For `zsh`, reload the file with `source "${ZDOTDIR:-$HOME}/.zshrc"`.
+
+Then check the active command and run `das`.
 
 ```bash
 command -v das && das --version
@@ -86,7 +90,7 @@ To use newer source changes, pull them into a clean clone and rebuild.
 Stop if any command fails.
 
 ```bash
-cd "$HOME/default-app-switcher"
+cd "$HOME/.default-app-switcher"
 git pull --ff-only
 make build
 ```
