@@ -10,7 +10,7 @@ This document contains some information about development and contributing.
 
 Install missing command line tools with `xcode-select --install`.
 
-## Clone & Build
+## Clone And Build
 
 ```bash
 git clone https://github.com/itwasallcode/default-app-switcher.git && cd default-app-switcher && make build
@@ -21,7 +21,7 @@ git clone https://github.com/itwasallcode/default-app-switcher.git && cd default
 Run the app in an interactive macOS terminal.
 
 ```bash
-./dist/das
+make run
 ```
 
 ## Check Changes
@@ -32,13 +32,19 @@ Apply Swift formatting after editing code.
 make format
 ```
 
-Run lint, check formatting, test, and build.
+Run lint, check formatting, test, and build in that order.
 
 ```bash
-make lint format-check test build
+make check
 ```
 
-Run `./dist/das` again to check the result manually.
+Run both commands to check formatted changes.
+
+```bash
+make format && make check
+```
+
+Run `make run` again to check the result manually.
 
 ## Commits & Pull Requests
 
