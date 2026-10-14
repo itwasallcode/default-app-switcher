@@ -10,7 +10,7 @@ Switch macOS default applications from the terminal.
 
 ### Requirements
 
-- `macOS 12` or later.
+- `macOS 14.5` or later to build and install.
 - `Xcode Command Line Tools` with `Swift 6` or later.
 - `Git` and `make` for building from source.
 
@@ -27,6 +27,8 @@ curl -fsSL https://raw.githubusercontent.com/itwasallcode/default-app-switcher/m
 ```
 
 Open a new terminal and run `das` to choose an app; use `das --help` or `das --version` for details.
+
+If `das` is not found, follow the installer's instructions to add `$HOME/.local/bin` to your shell's `PATH`.
 
 Run the installation command again to update to the latest release.
 
@@ -80,6 +82,8 @@ When both methods are installed, `command -v das` shows which one will run.
 #### Optional Update
 
 To use newer source changes, pull them into a clean clone and rebuild.
+
+Stop if any command fails.
 
 ```bash
 cd "$HOME/default-app-switcher"
