@@ -1,7 +1,5 @@
 # Contributing
 
-See the [installation guide](../README.md#installation) for requirements and setup.
-
 ## Run
 
 Build and run your checkout.
@@ -12,23 +10,15 @@ make run
 
 ## Check Changes
 
+After editing Swift code, run `make format` before checking.
+
 Run `make check` to lint, check formatting, test and build.
 
 ```bash
 make check
 ```
 
-`make format` edits Swift files.
-
-After editing Swift code, format it before checking.
-
-```bash
-make format && make check
-```
-
-Run `make run` again to check the result manually.
-
-Automated tests do not change macOS defaults; verify assignment behavior manually.
+Run `make run` to verify default app assignments manually because automated tests do not change macOS defaults.
 
 ## Commits & Pull Requests
 
