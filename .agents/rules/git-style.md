@@ -9,6 +9,7 @@ Follow the project's documented branching model; use **GitHub Flow** when none i
 - Identify the default branch from repository settings or the remote's `HEAD`; never assume its name.
 - Never commit directly to the default branch.
 - Branch off the latest default branch and open a pull request (PR) back into it.
+- Create task branches with `git switch --no-track -c <branch> <remote>/<default-branch>`.
 - One branch per task, kept short-lived.
 - Never reuse a merged branch; create a new one.
 - Name branches `<type>/<short-kebab>` in lowercase English, using the commit types below.
@@ -30,6 +31,7 @@ perf/cache-user-queries
 ## Commits
 
 - Stage files or create commits only on an explicit execution request; a commit-message request does not authorize either.
+- Verify the current branch before staging, committing or amending.
 
 Use **Conventional Commits**:
 
@@ -80,6 +82,16 @@ feat: added login                      # past tense
 feat: add login\n\nCo-Authored-By: ... # forbidden footer
 ```
 
+## Pushes
+
+- Verify the current branch, upstream, remote and destination branch before every push.
+- Never push directly to the default branch.
+- Publish a task branch with `git push --set-upstream <remote> HEAD:refs/heads/<branch>`.
+- Use the current local branch name as `<branch>`.
+- Require the upstream to match the remote and current branch name after publication or a branch rename.
+- Stop and correct a mismatched upstream before pushing.
+- Always specify the remote and destination branch explicitly when pushing.
+
 ## Pull Requests
 
 - Target the default branch from the task branch.
@@ -98,3 +110,5 @@ Before finishing any git task, verify:
 4. [ ] Important keywords in backticks.
 5. [ ] Body only when clarification is needed; no footer, co-author or attribution.
 6. [ ] PR targets the default branch with a conventional title.
+7. [ ] Published task branch tracks the same branch name on the intended remote.
+8. [ ] No direct pushes to the default branch.
