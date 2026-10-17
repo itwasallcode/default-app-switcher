@@ -6,6 +6,10 @@ Switch macOS default applications from the terminal.
 
 <img src="docs/assets/preview.png" alt="Default App Switcher" width="500" />
 
+### Supported Categories
+
+Currently supports changing default apps for web links and HTML files, source files, email links and plain text files.
+
 ## Installation
 
 ### Requirements
