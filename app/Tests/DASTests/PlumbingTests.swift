@@ -78,6 +78,9 @@ func runPlumbingTests(_ t: TestRunner) {
             ("\u{1B}[A", .up), ("\u{1B}[B", .down), ("\u{1B}[D", .back),
             ("\u{1B}[C", .other), ("\u{1B}[3~", .other),
             ("\u{1B}[5~", .other), ("\u{1B}[1;5A", .other),
+            ("\u{1B}OA", .up), ("\u{1B}OB", .down), ("\u{1B}OD", .back),
+            ("\u{1B}OC", .other), ("\u{1B}OP", .other), ("\u{1B}OQ", .other),
+            ("\u{1B}OR", .other), ("\u{1B}OS", .other),
         ]
         for searching in [false, true] {
             for (sequence, expected) in sequences {
@@ -100,6 +103,7 @@ func runPlumbingTests(_ t: TestRunner) {
 
         for (sequence, expected) in [
             ("\u{1B}", Key.back), ("\u{1B}[", .other), ("\u{1B}[1;", .other),
+            ("\u{1B}O", .other),
         ] {
             let input = Pipe()
             defer {

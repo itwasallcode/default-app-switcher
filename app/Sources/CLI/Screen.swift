@@ -63,14 +63,14 @@ package enum Screen {
     ]
 
     package static func render(_ frame: Frame, style: Style, height: Int, width: Int) -> String {
+        let height = max(1, height)
         let width = max(8, width - 1)
         let showWordmark = frame.isTopLevel && height >= 22
         var lines = headerLines(frame, style: style, showWordmark: showWordmark, width: width)
             .flatMap { wrappedLines($0, width: width) }
-        let contents = layout(frame.rows, width: width)
-        let details =
-            contents.indices.contains(frame.selected) ? contents[frame.selected].details : []
-        let statusLines =
+        lines = Array(lines.prefix(height - 1))
+        var contents = layout(frame.rows, width: width)
+        var statusLines =
             frame.status.map {
                 wrappedLines($0, width: width - contentIndent.count).map { contentIndent + $0 }
             } ?? []
@@ -78,15 +78,24 @@ package enum Screen {
             style.shortcut(" / ", pressed: frame.pressedShortcut == .search) + " Search  "
             + style.shortcut(" Esc ", pressed: frame.pressedShortcut == .back) + " Back  "
             + style.shortcut(" r ", pressed: frame.pressedShortcut == .refresh) + " Refresh"
-        let keyHints =
+        var keyHints =
             frame.isTopLevel || (frame.searching && frame.pressedShortcut == nil)
             ? []
             : [""] + wrappedLines(contentIndent + hint, width: width)
 
+        keyHints = Array(keyHints.prefix(max(0, height - lines.count - 1)))
+        statusLines = Array(statusLines.prefix(max(0, height - lines.count - keyHints.count - 2)))
+        let statusHeight = statusLines.isEmpty ? 0 : statusLines.count + 1
+        let detailBudget = max(0, height - lines.count - keyHints.count - statusHeight - 1)
+        if contents.indices.contains(frame.selected) {
+            contents[frame.selected].details = Array(
+                contents[frame.selected].details.prefix(detailBudget))
+        }
+        let details =
+            contents.indices.contains(frame.selected) ? contents[frame.selected].details : []
         let attached =
-            details.count + (statusLines.isEmpty ? 0 : statusLines.count + 1)
-            + keyHints.count
-        let capacity = max(3, height - lines.count - attached)
+            details.count + statusHeight + keyHints.count
+        let capacity = max(1, height - lines.count - attached)
         lines += listLines(
             frame, contents: contents, capacity: capacity, width: width, style: style)
 
@@ -165,7 +174,8 @@ package enum Screen {
             return [contentIndent + style.dim("No matches")]
         }
 
-        let inner = frame.rows.count > capacity ? max(1, capacity - 2) : capacity
+        let showScrollHints = capacity >= 3
+        let inner = frame.rows.count > capacity && showScrollHints ? capacity - 2 : capacity
         var first = 0
         if frame.rows.count > inner {
             first = min(max(0, frame.selected - inner / 2), frame.rows.count - inner)
@@ -176,7 +186,7 @@ package enum Screen {
             width, (contents.map { visibleLength($0.text) }.max() ?? 0) + 2)
 
         var lines: [String] = []
-        if first > 0 {
+        if first > 0, showScrollHints {
             lines.append(contentIndent + style.dim("↑ \(first) above"))
         }
         for index in first..<last {
@@ -190,7 +200,7 @@ package enum Screen {
                 lines.append(body)
             }
         }
-        if last < frame.rows.count {
+        if last < frame.rows.count, showScrollHints {
             lines.append(contentIndent + style.dim("↓ \(frame.rows.count - last) more below"))
         }
         return lines
