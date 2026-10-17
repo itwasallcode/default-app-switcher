@@ -23,7 +23,7 @@ func runCLITests(_ t: TestRunner) {
             t.equal(CLI.run(arguments: [argument], runtime: runtime), 0, "help succeeds")
             let help = stdout.last ?? ""
             t.expect(help.contains(AppMetadata.description), "help uses the shared description")
-            t.expect(help.contains("Default App Switcher"), "help documents the picker")
+            t.expect(help.contains("Switch default applications"), "help documents the picker")
             t.expect(help.contains("das --version"), "help documents version")
             for removed in ["das get", "das set", "das list", "Exit codes:", "Examples", "error"] {
                 t.expect(!help.contains(removed), "help omits \(removed)")
