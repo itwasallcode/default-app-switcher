@@ -73,6 +73,55 @@ func runPlumbingTests(_ t: TestRunner) {
         t.equal(read(Array("ş".utf8), searching: false), .other, "typing outside search is ignored")
     }
 
+    t.suite("escape-sequence-input") { t in
+        let sequences: [(String, Key)] = [
+            ("\u{1B}[A", .up), ("\u{1B}[B", .down), ("\u{1B}[D", .back),
+            ("\u{1B}[C", .other), ("\u{1B}[3~", .other),
+            ("\u{1B}[5~", .other), ("\u{1B}[1;5A", .other),
+        ]
+        for searching in [false, true] {
+            for (sequence, expected) in sequences {
+                let input = Pipe()
+                defer { input.fileHandleForReading.closeFile() }
+                input.fileHandleForWriting.write(Data((sequence + "x").utf8))
+                input.fileHandleForWriting.closeFile()
+                let descriptor = input.fileHandleForReading.fileDescriptor
+                t.equal(
+                    RawTerminal.readKey(searching: searching, from: descriptor), expected,
+                    "special keys retain their behavior")
+                t.equal(
+                    RawTerminal.readKey(searching: true, from: descriptor), .character("x"),
+                    "special keys leave no search characters and preserve the next key")
+                t.equal(
+                    RawTerminal.readKey(searching: true, from: descriptor), .quit,
+                    "the complete sequence is consumed")
+            }
+        }
+
+        for (sequence, expected) in [
+            ("\u{1B}", Key.back), ("\u{1B}[", .other), ("\u{1B}[1;", .other),
+        ] {
+            let input = Pipe()
+            defer {
+                input.fileHandleForReading.closeFile()
+                input.fileHandleForWriting.closeFile()
+            }
+            input.fileHandleForWriting.write(Data(sequence.utf8))
+            let descriptor = input.fileHandleForReading.fileDescriptor
+            let start = ProcessInfo.processInfo.systemUptime
+            t.equal(
+                RawTerminal.readKey(searching: true, from: descriptor), expected,
+                "Escape and incomplete sequences return without more input")
+            t.expect(
+                ProcessInfo.processInfo.systemUptime - start < 1,
+                "incomplete sequences have a bounded wait")
+            input.fileHandleForWriting.write(Data("x".utf8))
+            t.equal(
+                RawTerminal.readKey(searching: true, from: descriptor), .character("x"),
+                "input remains usable after an incomplete sequence")
+        }
+    }
+
     t.suite("text-layout") { t in
         t.equal(visibleLength("plain"), 5, "plain text measures its characters")
         t.equal(visibleLength("\u{1B}[2mdim\u{1B}[0m"), 3, "escape sequences occupy no columns")

@@ -119,12 +119,28 @@ package enum RawTerminal {
     private static func readEscapeSequence(from descriptor: Int32) -> Key {
         guard byteReady(within: 50, from: descriptor), let next = readByte(from: descriptor)
         else { return .back }
-        guard next == 0x5B, let final = readByte(from: descriptor) else { return .other }
-        switch final {
-        case 0x41: return .up
-        case 0x42: return .down
-        case 0x44: return .back
-        default: return .other
+        guard next == 0x5B else { return .other }
+
+        let deadline = ProcessInfo.processInfo.systemUptime + 0.05
+        var hasParameters = false
+        while true {
+            let remaining = deadline - ProcessInfo.processInfo.systemUptime
+            guard remaining > 0,
+                byteReady(within: Int32(ceil(remaining * 1000)), from: descriptor),
+                let byte = readByte(from: descriptor)
+            else { return .other }
+
+            if (0x40...0x7E).contains(byte) {
+                guard !hasParameters else { return .other }
+                switch byte {
+                case 0x41: return .up
+                case 0x42: return .down
+                case 0x44: return .back
+                default: return .other
+                }
+            }
+            guard (0x20...0x3F).contains(byte) else { return .other }
+            hasParameters = true
         }
     }
 
