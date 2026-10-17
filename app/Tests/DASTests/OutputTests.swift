@@ -151,6 +151,31 @@ func runOutputTests(_ t: TestRunner) {
             "feedback does not add shortcuts to the main menu")
     }
 
+    t.suite("screen-short-terminal") { t in
+        let rows = (0..<20).map { index in
+            Row(
+                label: "Editor \(index)",
+                value:
+                    "Can open Python scripts, shell scripts, JavaScript files and Markdown files only.",
+                compactValue: "Limited support.")
+        }
+        for width in [40, 80, 120] {
+            for height in [8, 12, 16] {
+                for searching in [false, true] {
+                    let frame = Frame(
+                        title: "Code Editor", subtitle: "Source files.", rows: rows, selected: 10,
+                        search: searching ? "editor" : "", searching: searching, status: nil)
+                    let output = stripANSI(
+                        Screen.render(frame, style: style, height: height, width: width))
+                    t.expect(
+                        output.components(separatedBy: "\n").count <= height,
+                        "the app list fits within a short terminal")
+                    t.expect(output.contains("Editor 10"), "the selected app remains visible")
+                }
+            }
+        }
+    }
+
     t.suite("screen-details") { t in
         let description =
             "Can open Python scripts, shell scripts, JavaScript files and Markdown files only."
